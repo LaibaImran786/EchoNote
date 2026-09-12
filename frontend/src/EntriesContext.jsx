@@ -16,7 +16,7 @@ export function EntriesProvider({ children }) {
           setBackendWarning("Gemini is not configured. Your voice notes will still be saved; add GEMINI_API_KEY to enable automatic mood, tags, tasks and summaries.");
         }
       } catch {
-        setBackendWarning("Can't reach the backend. Make sure the FastAPI server is running on port 4000.");
+        setBackendWarning("Can't reach the backend. Please check that the Render backend is running.");
       }
 
       try {
