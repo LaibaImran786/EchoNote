@@ -1,0 +1,14 @@
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { background: #0b1020; color: #eef2ff; }
+button, textarea, input { font: inherit; }
+button:disabled { opacity: .55; cursor: not-allowed !important; }
+@keyframes ringpulse { 0% { box-shadow: 0 0 0 0 rgba(124,58,237,.38); } 100% { box-shadow: 0 0 0 24px rgba(124,58,237,0); } }
+.echonote-mic:active { transform: scale(.96); }
+@media (max-width: 800px) {
+  .dashboard-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 620px) {
+  nav a { font-size: 12px !important; }
+  .welcome-row { align-items: flex-start !important; }
+}
