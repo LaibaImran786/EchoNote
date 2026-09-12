@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_URL = import.meta.env.VITE_API_URL || "https://echonote-u5hs.onrender.com";
 
 async function handle(response) {
   if (!response.ok) {
