@@ -1,4 +1,4 @@
-# EchoNote (Python backend + multi-page frontend)
+# EchoNote (Python backend + React frontend)
 
 Speak about your day → get back a structured daily card (mood, tags, to-dos, people, a highlight moment) — speak naturally and save the resulting text.
 
