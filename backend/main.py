@@ -19,13 +19,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://echonote-3erur2tx7-laibaimran786s-projects.vercel.app",
+        "https://echo-note-eight.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
 
 @app.on_event("startup")
 def on_startup():
