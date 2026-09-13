@@ -1,17 +1,6 @@
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "https://echonote-u5hs.onrender.com";
-
-function getUserId() {
-  let userId = localStorage.getItem("echonote_user_id");
-
-  if (!userId) {
-    userId = crypto.randomUUID();
-    localStorage.setItem("echonote_user_id", userId);
-  }
-
-  return userId;
-}
+  "http://127.0.0.1:4000";
 
 async function handleResponse(response) {
   const data = await response.json().catch(() => ({}));
@@ -27,30 +16,27 @@ async function handleResponse(response) {
   return data;
 }
 
-export async function checkHealth() {
-  const response = await fetch(
-    `${API_URL}/api/health`
-  );
+async function apiFetch(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    credentials: "include",
+  });
 
   return handleResponse(response);
+}
+
+export async function checkHealth() {
+  return apiFetch(`${API_URL}/api/health`);
 }
 
 export async function fetchEntries() {
-  const userId = getUserId();
-
-  const response = await fetch(
-    `${API_URL}/api/entries?user_id=${encodeURIComponent(
-      userId
-    )}`
+  return apiFetch(
+    `${API_URL}/api/entries`
   );
-
-  return handleResponse(response);
 }
 
 export async function createEntry(entry) {
-  const userId = getUserId();
-
-  const response = await fetch(
+  return apiFetch(
     `${API_URL}/api/entries`,
     {
       method: "POST",
@@ -58,25 +44,18 @@ export async function createEntry(entry) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        ...entry,
-        user_id: userId,
+        transcript: entry.transcript,
       }),
     }
   );
-
-  return handleResponse(response);
 }
 
 export async function updateEntry(
   entryId,
   transcript
 ) {
-  const userId = getUserId();
-
-  const response = await fetch(
-    `${API_URL}/api/entries/${entryId}?user_id=${encodeURIComponent(
-      userId
-    )}`,
+  return apiFetch(
+    `${API_URL}/api/entries/${entryId}`,
     {
       method: "PUT",
       headers: {
@@ -87,29 +66,21 @@ export async function updateEntry(
       }),
     }
   );
-
-  return handleResponse(response);
 }
 
 export async function removeEntry(entryId) {
-  const userId = getUserId();
-
-  const response = await fetch(
-    `${API_URL}/api/entries/${entryId}?user_id=${encodeURIComponent(
-      userId
-    )}`,
+  return apiFetch(
+    `${API_URL}/api/entries/${entryId}`,
     {
       method: "DELETE",
     }
   );
-
-  return handleResponse(response);
 }
 
 export async function structureTranscript(
   transcript
 ) {
-  const response = await fetch(
+  return apiFetch(
     `${API_URL}/api/structure`,
     {
       method: "POST",
@@ -121,6 +92,4 @@ export async function structureTranscript(
       }),
     }
   );
-
-  return handleResponse(response);
 }
