@@ -1,5 +1,17 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { fetchEntries, createEntry, removeEntry, checkHealth } from "./api.js";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  fetchEntries,
+  createEntry,
+  removeEntry,
+  updateEntry,
+  checkHealth,
+} from "./api.js";
 
 const EntriesContext = createContext(null);
 
@@ -12,11 +24,16 @@ export function EntriesProvider({ children }) {
     (async () => {
       try {
         const health = await checkHealth();
+
         if (!health.hasApiKey) {
-          setBackendWarning("Gemini is not configured. Your voice notes will still be saved; add GEMINI_API_KEY to enable automatic mood, tags, tasks and summaries.");
+          setBackendWarning(
+            "Gemini is not configured. Your voice notes will still be saved; add GEMINI_API_KEY to enable automatic mood, tags, tasks and summaries."
+          );
         }
       } catch {
-        setBackendWarning("Can't reach the backend. Please check that the Render backend is running.");
+        setBackendWarning(
+          "Can't reach the backend. Please check that the Render backend is running."
+        );
       }
 
       try {
@@ -31,24 +48,53 @@ export function EntriesProvider({ children }) {
   }, []);
 
   const createJournalEntry = async (transcript) => {
-    const entry = await createEntry(transcript);
+    const entry = await createEntry({
+      transcript,
+    });
+
     setEntries((prev) => [entry, ...prev]);
+
     return entry;
   };
 
+  const updateJournalEntry = async (id, transcript) => {
+    const updatedEntry = await updateEntry(id, transcript);
+
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === id ? updatedEntry : entry
+      )
+    );
+
+    return updatedEntry;
+  };
+
   const deleteJournalEntry = async (id) => {
-    const prev = entries;
-    setEntries((cur) => cur.filter((e) => e.id !== id));
+    const previousEntries = entries;
+
+    setEntries((current) =>
+      current.filter((entry) => entry.id !== id)
+    );
+
     try {
       await removeEntry(id);
-    } catch (e) {
-      setEntries(prev);
-      throw e;
+    } catch (error) {
+      setEntries(previousEntries);
+      throw error;
     }
   };
 
   return (
-    <EntriesContext.Provider value={{ entries, loadingHistory, backendWarning, createJournalEntry, deleteJournalEntry }}>
+    <EntriesContext.Provider
+      value={{
+        entries,
+        loadingHistory,
+        backendWarning,
+        createJournalEntry,
+        updateJournalEntry,
+        deleteJournalEntry,
+      }}
+    >
       {children}
     </EntriesContext.Provider>
   );
@@ -56,6 +102,12 @@ export function EntriesProvider({ children }) {
 
 export function useEntries() {
   const ctx = useContext(EntriesContext);
-  if (!ctx) throw new Error("useEntries must be used within EntriesProvider");
+
+  if (!ctx) {
+    throw new Error(
+      "useEntries must be used within EntriesProvider"
+    );
+  }
+
   return ctx;
 }

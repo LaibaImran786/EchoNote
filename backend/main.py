@@ -29,29 +29,50 @@ def on_startup():
 
 class NewEntry(BaseModel):
     transcript: str
+    user_id: str
+
+
+class UpdateEntry(BaseModel):
+    transcript: str
 
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "hasApiKey": bool(os.environ.get("GEMINI_API_KEY"))}
+    return {
+        "ok": True,
+        "hasApiKey": bool(os.environ.get("GEMINI_API_KEY"))
+    }
 
 
 @app.get("/api/entries")
-def list_entries():
-    return db.get_all_entries()
+def list_entries(user_id: str):
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+
+    return db.get_all_entries(user_id)
 
 
 @app.post("/api/entries", status_code=201)
 def create_entry(payload: NewEntry):
     transcript = (payload.transcript or "").strip()
+    user_id = (payload.user_id or "").strip()
+
     if not transcript:
-        raise HTTPException(status_code=400, detail="transcript is required")
+        raise HTTPException(
+            status_code=400,
+            detail="transcript is required"
+        )
+
+    if not user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="user_id is required"
+        )
 
     try:
         structured = structure_transcript(transcript)
     except StructuringError:
-        # The transcript is the user's actual memory. Never discard it just
-        # because the optional AI structuring service failed.
+        # Never discard the user's actual memory if AI structuring fails.
         structured = {
             "mood": "neutral",
             "energy": "medium",
@@ -64,6 +85,7 @@ def create_entry(payload: NewEntry):
 
     entry = {
         "id": str(uuid.uuid4()),
+        "userId": user_id,
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "transcript": transcript,
         "mood": structured.get("mood") or "neutral",
@@ -74,18 +96,73 @@ def create_entry(payload: NewEntry):
         "summary": structured.get("summary") or "",
         "highlight": structured.get("highlight") or "",
     }
+
     db.add_entry(entry)
+
     return entry
 
 
+@app.put("/api/entries/{entry_id}")
+def update_entry(
+    entry_id: str,
+    payload: UpdateEntry,
+    user_id: str,
+):
+    transcript = (payload.transcript or "").strip()
+    user_id = (user_id or "").strip()
+
+    if not transcript:
+        raise HTTPException(
+            status_code=400,
+            detail="transcript is required"
+        )
+
+    if not user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="user_id is required"
+        )
+
+    updated_entry = db.update_entry(
+        entry_id,
+        user_id,
+        transcript
+    )
+
+    if updated_entry is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Entry not found"
+        )
+
+    return updated_entry
+
+
 @app.delete("/api/entries/{entry_id}")
-def delete_entry(entry_id: str):
-    return db.delete_entry(entry_id)
+def delete_entry(
+    entry_id: str,
+    user_id: str,
+):
+    if not user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="user_id is required"
+        )
+
+    return db.delete_entry(
+        entry_id,
+        user_id
+    )
 
 
 if __name__ == "__main__":
     import uvicorn
 
     port = int(os.environ.get("PORT", 4000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port) 
-    # uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True
+    )

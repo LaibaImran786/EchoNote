@@ -6,22 +6,36 @@ import Header from "../components/Header.jsx";
 import { styles } from "../styles.js";
 
 export default function History() {
-  const { entries, loadingHistory, deleteJournalEntry } = useEntries();
+  const {
+    entries,
+    loadingHistory,
+    deleteJournalEntry,
+    updateJournalEntry,
+  } = useEntries();
+
   const [query, setQuery] = useState("");
   const [activeMood, setActiveMood] = useState("all");
 
   const moods = useMemo(() => {
-    const set = new Set(entries.map((e) => (e.mood || "neutral").toLowerCase()));
+    const set = new Set(
+      entries.map((e) => (e.mood || "neutral").toLowerCase())
+    );
+
     return ["all", ...Array.from(set)];
   }, [entries]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+
     return entries.filter((entry) => {
       const matchesMood =
-        activeMood === "all" || (entry.mood || "neutral").toLowerCase() === activeMood;
+        activeMood === "all" ||
+        (entry.mood || "neutral").toLowerCase() === activeMood;
+
       if (!matchesMood) return false;
+
       if (!q) return true;
+
       const haystack = [
         entry.transcript,
         entry.summary,
@@ -32,6 +46,7 @@ export default function History() {
       ]
         .join(" ")
         .toLowerCase();
+
       return haystack.includes(q);
     });
   }, [entries, query, activeMood]);
@@ -41,7 +56,9 @@ export default function History() {
       <Header
         eyebrow="Archive"
         title="Your days"
-        subtitle={`${entries.length} ${entries.length === 1 ? "entry" : "entries"} recorded so far.`}
+        subtitle={`${entries.length} ${
+          entries.length === 1 ? "entry" : "entries"
+        } recorded so far.`}
       />
 
       <input
@@ -60,7 +77,9 @@ export default function History() {
               onClick={() => setActiveMood(m)}
               style={{
                 ...styles.filterChip,
-                ...(activeMood === m ? styles.filterChipActive : {}),
+                ...(activeMood === m
+                  ? styles.filterChipActive
+                  : {}),
               }}
             >
               {m}
@@ -69,11 +88,19 @@ export default function History() {
         </div>
       )}
 
-      {loadingHistory && <p style={styles.emptyState}>Loading your entries…</p>}
+      {loadingHistory && (
+        <p style={styles.emptyState}>
+          Loading your entries…
+        </p>
+      )}
 
       {!loadingHistory && entries.length === 0 && (
         <p style={styles.emptyState}>
-          No entries yet. <Link to="/" style={styles.linkInline}>Record your first one</Link>.
+          No entries yet.{" "}
+          <Link to="/" style={styles.linkInline}>
+            Record your first one
+          </Link>
+          .
         </p>
       )}
 
@@ -83,13 +110,22 @@ export default function History() {
         </p>
       )}
 
-      {!loadingHistory && entries.length > 0 && filtered.length === 0 && (
-        <p style={styles.emptyState}>Nothing matches that search. Try a different word or mood.</p>
-      )}
+      {!loadingHistory &&
+        entries.length > 0 &&
+        filtered.length === 0 && (
+          <p style={styles.emptyState}>
+            Nothing matches that search. Try a different word or mood.
+          </p>
+        )}
 
       <div style={styles.historySection}>
         {filtered.map((entry) => (
-          <DailyCard key={entry.id} entry={entry} onDelete={deleteJournalEntry} />
+          <DailyCard
+            key={entry.id}
+            entry={entry}
+            onDelete={deleteJournalEntry}
+            onUpdate={updateJournalEntry}
+          />
         ))}
       </div>
     </div>
