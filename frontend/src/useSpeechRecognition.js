@@ -25,6 +25,7 @@ export function useSpeechRecognition() {
     (onComplete) => {
       if (!supported) return false;
 
+      // Clean up any previous recognition
       if (restartTimerRef.current) {
         clearTimeout(restartTimerRef.current);
         restartTimerRef.current = null;
@@ -34,7 +35,7 @@ export function useSpeechRecognition() {
         try {
           recognitionRef.current.abort();
         } catch {
-          // Ignore cleanup errors.
+          // Ignore cleanup errors
         }
       }
 
@@ -44,6 +45,7 @@ export function useSpeechRecognition() {
 
       const recognition = new SpeechRecognition();
 
+      // Settings optimized for faster transcription
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = "en-US";
@@ -63,7 +65,7 @@ export function useSpeechRecognition() {
       };
 
       recognition.onresult = (event) => {
-        let currentInterim = "";
+        let interimText = "";
 
         for (
           let i = event.resultIndex;
@@ -71,6 +73,9 @@ export function useSpeechRecognition() {
           i++
         ) {
           const result = event.results[i];
+
+          if (!result || !result[0]) continue;
+
           const text = result[0].transcript.trim();
 
           if (!text) continue;
@@ -86,25 +91,36 @@ export function useSpeechRecognition() {
             const currentLower = current.toLowerCase();
             const textLower = text.toLowerCase();
 
-            // Exact duplicate
+            // Ignore exact duplicate
             if (currentLower === textLower) {
               continue;
             }
 
-            // Already contained in the current transcript
+            // Ignore if the new result is already inside
+            // the existing transcript
             if (currentLower.includes(textLower)) {
               continue;
             }
 
-            // New result starts with the end of the old result
-            const words = currentLower.split(/\s+/);
+            const currentWords = currentLower.split(/\s+/);
             const newWords = textLower.split(/\s+/);
 
+            /*
+             * Detect overlapping words.
+             *
+             * Example:
+             * Current: "I am very happy"
+             * New:     "very happy today"
+             *
+             * Result:
+             * "I am very happy today"
+             */
             let overlap = 0;
 
             const maxOverlap = Math.min(
-              words.length,
-              newWords.length
+              currentWords.length,
+              newWords.length,
+              8
             );
 
             for (
@@ -112,7 +128,7 @@ export function useSpeechRecognition() {
               count >= 1;
               count--
             ) {
-              const oldEnd = words
+              const oldEnd = currentWords
                 .slice(-count)
                 .join(" ");
 
@@ -127,24 +143,25 @@ export function useSpeechRecognition() {
             }
 
             if (overlap > 0) {
-              const remainingWords = newWords
+              const remaining = newWords
                 .slice(overlap)
                 .join(" ");
 
-              if (remainingWords) {
+              if (remaining) {
                 finalRef.current =
-                  `${current} ${remainingWords}`.trim();
+                  `${current} ${remaining}`.trim();
               }
             } else {
               finalRef.current =
                 `${current} ${text}`.trim();
             }
           } else {
-            currentInterim += `${text} `;
+            // Show interim text immediately
+            interimText += `${text} `;
           }
         }
 
-        setInterim(currentInterim.trim());
+        setInterim(interimText.trim());
       };
 
       recognition.onerror = (event) => {
@@ -180,6 +197,11 @@ export function useSpeechRecognition() {
         isRunningRef.current = false;
         setInterim("");
 
+        /*
+         * Chrome sometimes ends continuous recognition
+         * automatically. Restart quickly without finalizing
+         * the recording.
+         */
         if (!stoppedRef.current) {
           restartTimerRef.current = setTimeout(() => {
             restartTimerRef.current = null;
@@ -189,9 +211,9 @@ export function useSpeechRecognition() {
             try {
               recognition.start();
             } catch {
-              // Browser may reject a restart during a transition.
+              // Ignore browser transition errors
             }
-          }, 150);
+          }, 50);
 
           return;
         }
